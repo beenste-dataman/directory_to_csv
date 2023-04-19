@@ -1,12 +1,25 @@
 import os
 import pandas as pd
-from googletrans import Translator
 import argparse
 import mimetypes
+import pwd
+import grp
+import time
+
+# Function to get file owner
+def get_file_owner(file_path):
+    try:
+        stat_info = os.stat(file_path)
+        uid = stat_info.st_uid
+        gid = stat_info.st_gid
+        user = pwd.getpwuid(uid).pw_name
+        group = grp.getgrgid(gid).gr_name
+        return f"{user} ({group})"
+    except:
+        return "Unknown"
 
 # Function to recursively process the directory
 def process_directory(directory, output_file):
-    translator = Translator()
     data = []
 
     for root, _, files in os.walk(directory):
@@ -15,15 +28,19 @@ def process_directory(directory, output_file):
             file_size = os.path.getsize(file_path)
             file_type = mimetypes.guess_type(file_path)[0] or "Unknown"
             parent_folder = os.path.basename(root)
-            translated_name = translator.translate(file, dest="en").text
+            file_owner = get_file_owner(file_path)
+            creation_time = time.ctime(os.path.getctime(file_path)) if hasattr(os.path, "getctime") else "N/A"
+            last_modified_time = time.ctime(os.path.getmtime(file_path))
 
             data.append({
                 "File Name": file,
-                "File Name Translated": translated_name,
                 "File Type": file_type,
                 "File Size": file_size,
                 "Parent Folder": parent_folder,
                 "Path to File": file_path,
+                "Owner": file_owner,
+                "Creation Date": creation_time,
+                "Last Edited Date": last_modified_time,
             })
 
     # Create a DataFrame from the data and save it to a CSV file
